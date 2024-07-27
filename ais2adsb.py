@@ -270,10 +270,10 @@ update = False
 
 while True:
     data, addr = sock.recvfrom(1024)  
-    nmea = data.decode()
     # Does not handle multi-part messages which I am skipping for now
     # Should not be an issue for SAR
     try:
+        nmea = data.decode()
         decoded = decode(nmea).asdict()
     except:
         continue
