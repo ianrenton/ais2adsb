@@ -146,7 +146,7 @@ def sendBaseStation(decoded):
         now_utc = datetime.now()
         dstr = now_utc.strftime("%Y/%m/%d")
         tstr = now_utc.strftime("%H:%M:%S.%f")[:-3]
-        callsign = "V:" + ("00000" + str(decoded['mmsi']) )[-6:]
+        callsign = "V" + ("00000" + str(decoded['mmsi']) )[-6:]
 
         global client_socket
 
