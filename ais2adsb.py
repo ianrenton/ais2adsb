@@ -50,7 +50,7 @@ ICAOmap = { 111232512:0x406C79, 111232511:0x406C82, 111232513:0x406C8E, 11123251
           }
 
 settings = {"DICT_FILE": None, "SERVER_IP":"", "SERVER_PORT": 0, "UDP_IP":"" , "UDP_PORT":0, "includeSAR":True, "includeShips":False, "includeCallSign": True, "printDict": False }
-
+callsign_cache = {}
 client_socket = None
 sent = 0
 
@@ -134,11 +134,21 @@ def sendBaseStation(decoded):
 
     global settings
 
+    mmsi = decoded['mmsi']
     alt = decoded.get('alt', 0)
     lat = decoded.get('lat', None)
     lon = decoded.get('lon', None)
     speed = decoded.get('speed', None)
     heading = decoded.get('course', None)
+
+    # Get and cache callsigns to use if the data is available, otherwise fall back to "V" + last 7 chars of MMSI
+    callsign = decoded.get('callsign', None)
+    if callsign:
+        callsign_cache[mmsi] = callsign
+    elif mmsi in callsign_cache:
+        callsign = callsign_cache[mmsi]
+    else:
+        callsign = "V" + ("000000" + str(decoded['mmsi']) )[-7:]
 
     if lat != None and lon != None and speed != None and heading != None:
         ICAO = '%X' % generateICAO(decoded['mmsi'])
@@ -146,7 +156,6 @@ def sendBaseStation(decoded):
         now_utc = datetime.now()
         dstr = now_utc.strftime("%Y/%m/%d")
         tstr = now_utc.strftime("%H:%M:%S.%f")[:-3]
-        callsign = "V" + ("00000" + str(decoded['mmsi']) )[-6:]
         ground_flag = 1 if alt < 1 else 0
         alt_str = "" if alt < 1 else str(alt)
 
