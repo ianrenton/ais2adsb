@@ -6,12 +6,14 @@ import socket
 import signal
 import pyais
 from pyais import decode
+from pyais import AISTracker
 import pyais.exceptions
 import ast
 import time
 from datetime import datetime
 import sys
 
+from pyais.tracker import AISTrackEvent
 
 ICAOmap = { 111232512:0x406C79, 111232511:0x406C82, 111232513:0x406C8E, 111232516:0x406D2C, 111232517:0x406D2D, 111232523:0x406DDB, 111232524:0x406DDC, 111232529:0x406F8B, 111232526:0x406EE7,
             111232528:0x406F2D, 111232518:0x406D21, 111232533:0x406DE5, 111232522:0x406DE6, 111232527:0x406DE7, 111232525:0x406DE8, 111232534:0x406DE9, 111232535:0x406DEA,111232537:0x406DEB,
@@ -53,6 +55,7 @@ settings = {"DICT_FILE": None, "SERVER_IP":"", "SERVER_PORT": 0, "UDP_IP":"" , "
 
 client_socket = None
 sent = 0
+tracker = AISTracker(stream_is_ordered=True)
 
 def generateICAO(mmsi):
     global ICAOmap, maxICAO
@@ -139,6 +142,9 @@ def sendBaseStation(decoded):
     lon = decoded.get('lon', None)
     speed = decoded.get('speed', None)
     heading = decoded.get('course', None)
+    callsign = decoded.get('callsign', None)
+    if callsign:
+        print(callsign)
 
     if lat != None and lon != None and speed != None and heading != None:
         ICAO = '%X' % generateICAO(decoded['mmsi'])
@@ -243,6 +249,10 @@ def parseCommandLine():
 
     return True
 
+# called every time an AISTrack is updated
+def handle_update(track):
+    print('update', track.mmsi)
+
 
 signal.signal(signal.SIGINT, signalHandler)
 
@@ -273,13 +283,13 @@ next_update_time = time.monotonic() + 10
 count  = 0
 sent = 0
 update = False
+tracker.register_callback(AISTrackEvent.UPDATED, handle_update)
 
 while True:
     data, addr = sock.recvfrom(1024)
-    # Does not handle multi-part messages which I am skipping for now
-    # Should not be an issue for SAR
     try:
         nmea = data.decode()
+        tracker.update(nmea)
         decoded = decode(nmea).asdict()
     except:
         continue
